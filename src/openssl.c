@@ -40,15 +40,27 @@
 #include <sys/types.h>    /* ssize_t pid_t */
 #include <sys/time.h>     /* struct timeval gettimeofday(2) */
 #include <sys/stat.h>     /* struct stat stat(2) */
+#ifdef _WIN32
+#include <winsock2.h>     /* AF_INET AF_INET6 */
+#include <inaddr.h>       /* struct in_addr struct in6_addr */
+#include <ws2tcpip.h>     /* inet_pton(3) */
+#pragma comment(lib, "ws2_32.lib")
+#else
 #include <sys/socket.h>   /* AF_INET AF_INET6 */
-#include <sys/resource.h> /* RUSAGE_SELF struct rusage getrusage(2) */
-#include <sys/utsname.h>  /* struct utsname uname(3) */
-#include <fcntl.h>        /* O_RDONLY O_CLOEXEC open(2) */
-#include <unistd.h>       /* close(2) getpid(2) */
 #include <netinet/in.h>   /* struct in_addr struct in6_addr */
 #include <arpa/inet.h>    /* inet_pton(3) */
+#endif
+#include <fcntl.h>        /* O_RDONLY O_CLOEXEC open(2) */
+#include <unistd.h>       /* close(2) getpid(2) */
 #include <pthread.h>      /* pthread_mutex_init(3) pthread_mutex_lock(3) pthread_mutex_unlock(3) */
+#ifdef __WIN32
+#define EXPORT  __declspec (dllexport)
+#else
+#include <sys/resource.h> /* RUSAGE_SELF struct rusage getrusage(2) */
+#include <sys/utsname.h>  /* struct utsname uname(3) */
 #include <dlfcn.h>        /* dladdr(3) dlopen(3) */
+#define EXPORT
+#endif
 
 #if __APPLE__
 #include <mach/mach_time.h> /* mach_absolute_time() */
@@ -600,7 +612,13 @@ static const char *aux_strerror_r(int error, char *dst, size_t lim) {
 	static const char unknown[] = "Unknown error: ";
 	size_t n;
 
-#if STRERROR_R_CHAR_P
+#if _WIN32
+	char *rv = strerror(error);
+	n = MIN(strlen(rv) - 1, lim);
+	memcpy(dst, rv, n);
+	return dst;
+
+#elif STRERROR_R_CHAR_P
 	char *rv = strerror_r(error, dst, lim);
 
 	if (rv != NULL)
@@ -1079,10 +1097,12 @@ static const char *auxL_pusherror(lua_State *L, int error, const char *fun) {
 		} else {
 			return lua_pushfstring(L, "%s:%d:%s", file, line, txt);
 		}
+#if HAVE_DLADDR
 	} else if (error == auxL_EDYLD) {
 		const char *const fmt = (fun)? "%s: %s" : "%.0s%s";
 
 		return lua_pushfstring(L, fmt, (fun)? fun : "", dlerror());
+#endif
 	} else {
 		const char *const fmt = (fun)? "%s: %s" : "%.0s%s";
 
@@ -1939,7 +1959,7 @@ static void initall(lua_State *L);
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-int luaopen__openssl_compat(lua_State *L) {
+EXPORT int luaopen__openssl_compat(lua_State *L) {
 	initall(L);
 
 	lua_newtable(L);
@@ -2136,7 +2156,7 @@ static const auxL_IntegerReg ssleay_version[] = {
 	{ NULL, 0 },
 };
 
-int luaopen__openssl(lua_State *L) {
+EXPORT int luaopen__openssl(lua_State *L) {
 	size_t i;
 
 	auxL_newlib(L, ossl_globals, 0);
@@ -2781,7 +2801,7 @@ static const auxL_Reg bn_globals[] = {
 	{ NULL,            NULL },
 };
 
-int luaopen__openssl_bignum(lua_State *L) {
+EXPORT int luaopen__openssl_bignum(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, bn_globals, 0);
@@ -3945,7 +3965,7 @@ static void pk_luainit(lua_State *L, _Bool reset) {
 	lua_pop(L, 2);
 } /* pk_luainit() */
 
-int luaopen__openssl_pkey(lua_State *L) {
+EXPORT int luaopen__openssl_pkey(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, pk_globals, 0);
@@ -3957,7 +3977,7 @@ int luaopen__openssl_pkey(lua_State *L) {
 /*
  * Deprecated module name.
  */
-int luaopen__openssl_pubkey(lua_State *L) {
+EXPORT int luaopen__openssl_pubkey(lua_State *L) {
 	return luaopen__openssl_pkey(L);
 } /* luaopen__openssl_pubkey() */
 
@@ -4133,7 +4153,7 @@ static const auxL_Reg ecg_globals[] = {
 
 #endif /* OPENSSL_NO_EC */
 
-int luaopen__openssl_ec_group(lua_State *L) {
+EXPORT int luaopen__openssl_ec_group(lua_State *L) {
 #ifndef OPENSSL_NO_EC
 	initall(L);
 
@@ -4340,7 +4360,7 @@ static const auxL_Reg xn_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_name(lua_State *L) {
+EXPORT int luaopen__openssl_x509_name(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xn_globals, 0);
@@ -4594,7 +4614,7 @@ static const auxL_Reg gn_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_altname(lua_State *L) {
+EXPORT int luaopen__openssl_x509_altname(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, gn_globals, 0);
@@ -4832,7 +4852,7 @@ static const auxL_IntegerReg xe_textopts[] = {
 	{ NULL, 0 },
 };
 
-int luaopen__openssl_x509_extension(lua_State *L) {
+EXPORT int luaopen__openssl_x509_extension(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xe_globals, 0);
@@ -5857,7 +5877,7 @@ static const auxL_Reg xc_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_cert(lua_State *L) {
+EXPORT int luaopen__openssl_x509_cert(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xc_globals, 0);
@@ -6164,7 +6184,7 @@ static const auxL_Reg xr_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_csr(lua_State *L) {
+EXPORT int luaopen__openssl_x509_csr(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xr_globals, 0);
@@ -6562,7 +6582,7 @@ static const auxL_Reg xx_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_crl(lua_State *L) {
+EXPORT int luaopen__openssl_x509_crl(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xx_globals, 0);
@@ -6720,7 +6740,7 @@ static const auxL_Reg xl_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_chain(lua_State *L) {
+EXPORT int luaopen__openssl_x509_chain(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xl_globals, 0);
@@ -6887,7 +6907,7 @@ static const auxL_Reg xs_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_store(lua_State *L) {
+EXPORT int luaopen__openssl_x509_store(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, xs_globals, 0);
@@ -6957,7 +6977,7 @@ static const auxL_Reg stx_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_x509_store_context(lua_State *L) {
+EXPORT int luaopen__openssl_x509_store_context(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, stx_globals, 0);
@@ -7078,7 +7098,7 @@ static const auxL_Reg p12_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_pkcs12(lua_State *L) {
+EXPORT int luaopen__openssl_pkcs12(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, p12_globals, 0);
@@ -7583,7 +7603,7 @@ static const auxL_IntegerReg sx_option[] = {
 	{ NULL, 0 },
 };
 
-int luaopen__openssl_ssl_context(lua_State *L) {
+EXPORT int luaopen__openssl_ssl_context(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, sx_globals, 0);
@@ -7877,7 +7897,7 @@ static const auxL_IntegerReg ssl_version[] = {
 };
 
 
-int luaopen__openssl_ssl(lua_State *L) {
+EXPORT int luaopen__openssl_ssl(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, ssl_globals, 0);
@@ -7991,7 +8011,7 @@ static const auxL_Reg md_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_digest(lua_State *L) {
+EXPORT int luaopen__openssl_digest(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, md_globals, 0);
@@ -8103,7 +8123,7 @@ static const auxL_Reg hmac_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_hmac(lua_State *L) {
+EXPORT int luaopen__openssl_hmac(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, hmac_globals, 0);
@@ -8310,7 +8330,7 @@ static const auxL_Reg cipher_globals[] = {
 	{ NULL,        NULL },
 };
 
-int luaopen__openssl_cipher(lua_State *L) {
+EXPORT int luaopen__openssl_cipher(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, cipher_globals, 0);
@@ -8435,8 +8455,10 @@ error:;
 	struct {
 		struct timeval tv;
 		pid_t pid;
+#ifndef _WIN32
 		struct rusage ru;
 		struct utsname un;
+#endif
 		uintptr_t aslr;
 #if defined __APPLE__
 		uint64_t mt;
@@ -8447,8 +8469,10 @@ error:;
 
 	gettimeofday(&junk.tv, NULL);
 	junk.pid = getpid();
+#ifndef _WIN32
 	getrusage(RUSAGE_SELF, &junk.ru);
 	uname(&junk.un);
+#endif
 	junk.aslr = (uintptr_t)&strcpy ^ (uintptr_t)&randL_stir;
 #if defined __APPLE__
 	junk.mt = mach_absolute_time();
@@ -8668,7 +8692,7 @@ static const auxL_Reg rand_globals[] = {
 	{ NULL,      NULL },
 };
 
-int luaopen__openssl_rand(lua_State *L) {
+EXPORT int luaopen__openssl_rand(lua_State *L) {
 	struct randL_state *st;
 
 	initall(L);
@@ -8716,7 +8740,7 @@ static const auxL_Reg des_globals[] = {
 	{ NULL,            NULL },
 };
 
-int luaopen__openssl_des(lua_State *L) {
+EXPORT int luaopen__openssl_des(lua_State *L) {
 	initall(L);
 
 	auxL_newlib(L, des_globals, 0);

@@ -44,6 +44,8 @@
 #include <winsock2.h>     /* AF_INET AF_INET6 */
 #include <inaddr.h>       /* struct in_addr struct in6_addr */
 #include <ws2tcpip.h>     /* inet_pton(3) */
+#define inet_pton InetPton
+#define inet_ntop InetNtop
 #pragma comment(lib, "ws2_32.lib")
 #else
 #include <sys/socket.h>   /* AF_INET AF_INET6 */

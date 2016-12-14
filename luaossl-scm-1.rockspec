@@ -79,6 +79,7 @@ build = {
       modules =
       {
         ["_openssl"] = {
+          defines = {"_WIN32_WINNT=0x0600"}
           libraries = {nil,nil,"ws2_32"};
         };
       };

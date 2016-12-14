@@ -76,6 +76,15 @@ build = {
     ["openssl.x509.verify_param"] = "src/openssl.x509.verify_param.lua";
   };
   platforms = {
+    windows =
+    {
+      modules =
+      {
+        ["_openssl"] = {
+          libraries = {nil,nil,nil,nil,"ws2_32"};
+        };
+      };
+    };
     -- Only linux needs to link with libdl
     linux = {
       modules = {

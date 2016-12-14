@@ -33,8 +33,6 @@ build = {
       libraries = {
         "ssleay32";
         "libeay32";
-        -- "pthread";
-        "m";
       };
       defines = {
         "_REENTRANT"; "_THREAD_SAFE";
@@ -81,7 +79,7 @@ build = {
       modules =
       {
         ["_openssl"] = {
-          libraries = {nil,nil,nil,"ws2_32"};
+          libraries = {nil,nil,"ws2_32"};
         };
       };
     };
@@ -89,7 +87,7 @@ build = {
     linux = {
       modules = {
         ["_openssl"] = {
-          libraries = {nil,nil,nil,nil,"dl"};
+          libraries = {nil,nil,"pthread","m","dl"};
         };
       };
     };

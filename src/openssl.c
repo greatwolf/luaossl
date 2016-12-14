@@ -41,6 +41,7 @@
 #include <sys/time.h>     /* struct timeval gettimeofday(2) */
 #include <sys/stat.h>     /* struct stat stat(2) */
 #ifdef _WIN32
+#define WINVER 0x0600
 #include <winsock2.h>     /* AF_INET AF_INET6 */
 #include <inaddr.h>       /* struct in_addr struct in6_addr */
 #include <ws2tcpip.h>     /* inet_pton(3) */

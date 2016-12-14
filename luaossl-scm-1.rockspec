@@ -2,7 +2,7 @@ package = "luaossl"
 version = "scm-1"
 source = {
   url = "git://github.com/greatwolf/luaossl.git";
-  branch = "windows-support";
+  branch = "windows-support_new";
 }
 description = {
   summary = "Most comprehensive OpenSSL module in the Lua universe.";

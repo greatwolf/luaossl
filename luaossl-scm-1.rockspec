@@ -81,7 +81,7 @@ build = {
       modules =
       {
         ["_openssl"] = {
-          libraries = {nil,nil,nil,nil,"ws2_32"};
+          libraries = {nil,nil,nil,"ws2_32"};
         };
       };
     };

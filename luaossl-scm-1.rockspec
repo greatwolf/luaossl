@@ -1,5 +1,5 @@
 package = "luaossl"
-version = "scm-0"
+version = "scm-1"
 source = {
   url = "git://github.com/greatwolf/luaossl.git";
   branch = "windows-support";
